@@ -47,8 +47,9 @@ async def ping(ctx, arg):
     await ctx.send(line.decode().split("/")[4] + "ms average to " + arg)
 
 @bot.command()
-async def timer(ctx, arg):
-    """Countdown timer in minutes. Suggested usage: ~timer 5"""
+async def timer(ctx, *args):
+    """Countdown timer in minutes. Suggested usage: ~timer 5, or ~timer 5 @someone to nag them past timer stop"""
+    arg = args[0] # minutes
     # terminated?
     terminated = False
     # test
@@ -62,6 +63,10 @@ async def timer(ctx, arg):
     start_time = time.time()
     end_time = start_time + int(float(arg)*60)
     embedded.insert_field_at(index=0, name="Time Left", value="{}m".format(arg), inline=False)
+    # if additional user argument
+    if len(args) == 2:
+        monitored_user = args[1]
+        embedded.insert_field_at(index=1, name="Waiting for", value="{}".format(monitored_user), inline=False)
     # start timer routine
     async with ctx.typing():
         await ctx.message.delete() # delete command message
@@ -86,13 +91,56 @@ async def timer(ctx, arg):
             embedded.set_field_at(index=0, name="Time Left", value=remaining_time_str, inline=False)
             await message.edit(embed=embedded)
         # delete message
-        reaction_dict.pop(message.id) # clear storage
+        if message.id in reaction_dict:
+            reaction_dict.pop(message.id) # clear storage
         await message.delete() # delete message
         if terminated:
             elapsed_time_str = "{}m {}s".format(int(elapsed_time/60), int(elapsed_time%60))
             await ctx.send("{}, cancelled timer. {} elapsed".format(ctx.author.mention, elapsed_time_str)) # notify user who terminated command
         else:
             await ctx.send("{}, {}m timer is up".format(ctx.author.mention, arg)) # notify user who initiated command
+        # If there is a monitored user, continue
+        if len(args) == 2:
+            # start you are late live update
+            main_message = await ctx.send("{}, YOU ARE LATE! NAGGING EVERY MINUTE\nNote: only {} can cancel with ❌".format(monitored_user, ctx.author.mention))
+            await main_message.add_reaction('❌') # add reaction
+            await asyncio.sleep(60)
+            i = 1
+            while True:
+            # check for reactions in reaction_dict
+                if main_message.id in reaction_dict:
+                    if i > 29:
+                        await main_message.delete()
+                        try:
+                            await message.delete()
+                        except discord.NotFound:
+                            pass
+                        await ctx.send("{}, nagging cancelled for {} due to timeout. {}m elapsed".format(ctx.author.mention, monitored_user, i)) # notify user who terminated command
+                        return # terminate function
+                    if reaction_dict[main_message.id][0] == ctx.author.id and reaction_dict[main_message.id][1] == '❌':
+                        reaction_dict.pop(main_message.id)
+                        await main_message.delete()
+                        try:
+                            await message.delete()
+                        except discord.NotFound:
+                            pass
+                        break # terminate function
+                if message.id in reaction_dict:
+                    if reaction_dict[message.id][0] == ctx.author.id and reaction_dict[message.id][1] == '❌':
+                        reaction_dict.pop(message.id)
+                        await main_message.delete()
+                        try:
+                            await message.delete()
+                        except discord.NotFound:
+                            pass
+                        break # terminate function
+                message = await ctx.send("{}, YOU ARE LATE BY {}m!".format(monitored_user, i))
+                await message.add_reaction('❌') # add reaction
+                await asyncio.sleep(60)
+                await message.delete()
+                i += 1
+            await ctx.send("{} cancelled nagging for {}. {}m elapsed".format(ctx.author.mention, monitored_user, i)) # notify user who terminated command
+
 
 @bot.command()
 async def insult(ctx, arg):
