@@ -11,6 +11,7 @@ import configparser
 import requests
 
 import time
+import asyncio
 
 config = configparser.ConfigParser()
 config.read('ngbot.conf')
@@ -44,6 +45,54 @@ async def ping(ctx, arg):
     line = res.splitlines()[-1]
     #await ctx.delete_message()
     await ctx.send(line.decode().split("/")[4] + "ms average to " + arg)
+
+@bot.command()
+async def timer(ctx, arg):
+    """Countdown timer in minutes. Suggested usage: ~timer 5"""
+    # terminated?
+    terminated = False
+    # test
+    interval_seconds = 5
+    # initialize embed
+    description = "{}'s {}m timer. ❌ to stop".format(ctx.author.mention, arg)
+    embedded = discord.Embed(
+        title = "Timer Running",
+        description=description
+    )
+    start_time = time.time()
+    end_time = start_time + int(float(arg)*60)
+    embedded.insert_field_at(index=0, name="Time Left", value="{}m".format(arg), inline=False)
+    # start timer routine
+    async with ctx.typing():
+        await ctx.message.delete() # delete command message
+        message = await ctx.send(embed=embedded) # send embed
+        await message.add_reaction('❌') # add reaction
+        # start embed live update
+        while end_time > time.time():
+            # check for reactions in reaction_dict
+            if message.id in reaction_dict:
+                if reaction_dict[message.id][0] == ctx.author.id and reaction_dict[message.id][1] == '❌':
+                    terminated = True
+                    elapsed_time = time.time() - start_time
+                    break # terminate function
+            await asyncio.sleep(interval_seconds)
+            remaining_time = end_time - time.time()
+            # if remaining_time is less than interval, stop
+            if remaining_time < interval_seconds:
+                await asyncio.sleep(int(remaining_time))
+                break
+            remaining_time_str = "{}m {}s".format(int(remaining_time/60), int(remaining_time%60))
+            # update embed
+            embedded.set_field_at(index=0, name="Time Left", value=remaining_time_str, inline=False)
+            await message.edit(embed=embedded)
+        # delete message
+        reaction_dict.pop(message.id) # clear storage
+        await message.delete() # delete message
+        if terminated:
+            elapsed_time_str = "{}m {}s".format(int(elapsed_time/60), int(elapsed_time%60))
+            await ctx.send("{}, cancelled timer. {} elapsed".format(ctx.author.mention, elapsed_time_str)) # notify user who terminated command
+        else:
+            await ctx.send("{}, {}m timer is up".format(ctx.author.mention, arg)) # notify user who initiated command
 
 @bot.command()
 async def insult(ctx, arg):
@@ -132,5 +181,12 @@ async def on_member_update(before, after):
         for channel in bot.get_all_channels():
             if channel.name == bot_channel:
                 await channel.send(message, delete_after=300)
+
+reaction_dict = {}
+@bot.event
+async def on_reaction_add(reaction, user):
+    if user.id == bot.user.id:
+        return
+    reaction_dict[reaction.message.id] = [user.id, reaction.emoji]
 
 bot.run(bot_token)

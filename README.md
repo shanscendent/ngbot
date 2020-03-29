@@ -23,12 +23,14 @@ Token = <Discord bot token>
   - Ping (Uses `ping` from bash, `shlex` to sanitize user inputs)
   - Insult
   - Rock, paper, scissors
+  - Interactive timer
 - Events:
   - Send message to bot channel on member voice channel join
   - Send message to bot channel on member game start
   
 ## To-do
 - Make it work on multiple guilds
+- Figure out persistent/more efficient storage method
 
 ## Bugs
 - 
