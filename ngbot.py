@@ -99,28 +99,38 @@ async def on_voice_state_update(member, before, after):
             break
     message = "<@!{}> has joined".format(member.id)
     i = 0
-    for member in members:
-        i += 1
-        if member.id == member_id:
-            continue
-        message += " <@!{}>".format(member.id)
-        if i != len(members):
-            message += ","
-    message += " in {}, anyone there?".format(after.channel)
+    if len(members) == 1:
+        message += " {}, anyone there?".format(after.channel)
+    else:
+        for member in members:
+            i += 1
+            if member.id == member_id:
+                continue
+            message += " <@!{}>".format(member.id)
+            if i != len(members):
+                message += ","
+        message += " in {}.".format(after.channel)
     for channel in bot.get_all_channels():
         if channel.name == bot_channel:
-            await channel.send(message, delete_after=3600)
+            await channel.send(message, delete_after=300)
 
+member_dict = {}
 @bot.event
 async def on_member_update(before, after):
     if before.bot:
         return
-    # debug
-    print(before.name, before.activity, after.activity)
-    if before.activity.type != discord.ActivityType.playing and after.activity.type == discord.ActivityType.playing:
+    if before.activity == None: before_activity = None
+    else: before_activity = before.activity.type
+    if after.activity == None: after_activity = None
+    else: after_activity = after.activity.type
+    if before_activity != discord.ActivityType.playing and after_activity == discord.ActivityType.playing:
+        if before.id in member_dict:
+            if (time.time() - member_dict[before.id]) < 5:
+                return
+        member_dict[before.id] = time.time()
         message = "<@!{}> is playing {}".format(before.id, after.activity.name)
         for channel in bot.get_all_channels():
             if channel.name == bot_channel:
-                await channel.send(message, delete_after=3600)
+                await channel.send(message, delete_after=300)
 
 bot.run(bot_token)

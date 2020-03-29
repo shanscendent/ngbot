@@ -2,14 +2,14 @@
 Bot for quality of life improvements
 
 ## Getting started
-Install the necessary dependencies: `discord.py`
+Install the necessary dependencies: [discord.py](https://discordpy.readthedocs.io/en/latest/), `requests`\
 `venv` recommended.
 ```
 pip install -U discord.py
 ```
 
 ## Configuration file format
-The configuration file `ngbot.conf` is not pushed as it contains important credentials
+The configuration file `ngbot.conf` is not pushed as it contains important credentials\
 Format:
 ```
 [DEFAULT]
@@ -28,11 +28,10 @@ Token = <Discord bot token>
   - Send message to bot channel on member game start
   
 ## To-do
+- Make it work on multiple guilds
 
 ## Bugs
-- Game start event breaks sometimes:
-```
-File "ngbot.py", line 118, in on_member_update
-if before.activity.type != discord.ActivityType.playing and after.activity.type == discord.ActivityType.playing:
-AttributeError: 'NoneType' object has no attribute 'type'
-```
+- 
+
+## Notes
+- `on_member_update()` is called many times, need to figure out a way to prevent multiple messages *efficiently*
