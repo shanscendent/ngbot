@@ -1,3 +1,5 @@
 env/
 .vscode/
 ngbot.conf
+test.py
+testbot.conf

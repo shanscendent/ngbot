@@ -31,6 +31,8 @@ Token = <Discord bot token>
 ## To-do
 - Make it work on multiple guilds
 - Figure out persistent/more efficient storage method
+- Change `requests` to `asyncio` compatible methods
+- Add garbage collection
 
 ## Bugs
 - 
